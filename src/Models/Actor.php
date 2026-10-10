@@ -86,6 +86,11 @@ class Actor extends ModelWithFields
         return $this->belongsTo(static::userModel(), self::FIELD_USER_ID);
     }
 
+    public function timeEntries(): HasMany
+    {
+        return $this->hasMany(TimeEntry::class, TimeEntry::FIELD_ACTOR_ID);
+    }
+
     public function participations(): HasMany
     {
         return $this->hasMany(Participant::class, Participant::FIELD_ACTOR_ID);

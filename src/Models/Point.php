@@ -88,6 +88,11 @@ class Point extends ModelWithFields
         return $this->hasMany(Participant::class, Participant::FIELD_POINT_ID);
     }
 
+    public function timeEntries(): HasMany
+    {
+        return $this->hasMany(TimeEntry::class, TimeEntry::FIELD_POINT_ID);
+    }
+
     /**
      * Excerpt in one line, cut to the length.
      */

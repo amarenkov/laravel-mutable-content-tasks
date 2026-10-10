@@ -13,6 +13,7 @@ use Amarenkov\MutableContentTasks\Lovs\PointType;
 use Amarenkov\MutableContentTasks\Models\Actor;
 use Amarenkov\MutableContentTasks\Models\Participant;
 use Amarenkov\MutableContentTasks\Models\Point;
+use Amarenkov\MutableContentTasks\Models\TimeEntry;
 
 class MutableContentTasksServiceProvider extends ServiceProvider
 {
@@ -27,7 +28,8 @@ class MutableContentTasksServiceProvider extends ServiceProvider
             $registry
                 ->add(Point::class)
                 ->add(Actor::class)
-                ->add(Participant::class);
+                ->add(Participant::class)
+                ->add(TimeEntry::class);
         });
 
         $this->callAfterResolving(LovRegistry::class, function (LovRegistry $registry) {
