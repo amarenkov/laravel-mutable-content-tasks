@@ -1,0 +1,60 @@
+{
+    "name": "amarenkov/laravel-mutable-content-tasks",
+    "description": "Task domain for laravel-mutable-content: tasks, participants and time tracking with their services and events, without a UI.",
+    "type": "library",
+    "keywords": [
+        "laravel",
+        "eloquent",
+        "tasks",
+        "task-management",
+        "time-tracking",
+        "dynamic-fields",
+        "custom-fields"
+    ],
+    "homepage": "https://github.com/amarenkov/laravel-mutable-content-tasks",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Alexey Marenkov",
+            "email": "alex@marenkov.dev",
+            "homepage": "https://github.com/amarenkov"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/amarenkov/laravel-mutable-content-tasks/issues",
+        "source": "https://github.com/amarenkov/laravel-mutable-content-tasks"
+    },
+    "require": {
+        "php": "^8.4",
+        "amarenkov/laravel-mutable-content": "^0.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Amarenkov\\MutableContentTasks\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Amarenkov\\MutableContentTasks\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Amarenkov\\MutableContentTasks\\MutableContentTasksServiceProvider"
+            ]
+        },
+        "branch-alias": {
+            "dev-main": "0.1.x-dev"
+        }
+    },
+    "require-dev": {
+        "orchestra/testbench": "^11.0",
+        "phpunit/phpunit": "^12.0",
+        "larastan/larastan": "^3.0"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse"
+    }
+}
