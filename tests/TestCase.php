@@ -71,7 +71,7 @@ abstract class TestCase extends BaseTestCase
                 DB::statement('DROP TABLE IF EXISTS `'.$table.'`');
             }
         } else {
-            foreach (['public', 'logs'] as $schema) {
+            foreach (['public', 'logs', 'tasks'] as $schema) {
                 DB::statement("DROP SCHEMA IF EXISTS {$schema} CASCADE");
             }
 
@@ -82,6 +82,7 @@ abstract class TestCase extends BaseTestCase
             '--path' => [
                 realpath(__DIR__.'/../vendor/orchestra/testbench-core/laravel/migrations'),
                 realpath(__DIR__.'/../vendor/amarenkov/laravel-mutable-content/database/migrations'),
+                realpath(__DIR__.'/../database/migrations'),
             ],
             '--realpath' => true,
         ]);

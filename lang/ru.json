@@ -1,0 +1,16 @@
+{
+    "Point": "Пункт",
+    "Point type": "Тип пункта",
+    "Task": "Задача",
+    "Comment": "Комментарий",
+    "Parent": "Родитель",
+    "Excerpt": "Кратко",
+    "Actor": "Актор",
+    "Actor type": "Тип актора",
+    "User": "Пользователь",
+    "Participant": "Участник",
+    "Participant role": "Роль участника",
+    "Role": "Роль",
+    "Executor": "Исполнитель",
+    "Manager": "Постановщик"
+}
