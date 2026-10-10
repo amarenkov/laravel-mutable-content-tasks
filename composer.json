@@ -26,7 +26,7 @@
     },
     "require": {
         "php": "^8.4",
-        "amarenkov/laravel-mutable-content": "^0.5"
+        "amarenkov/laravel-mutable-content": "^0.6"
     },
     "autoload": {
         "psr-4": {
