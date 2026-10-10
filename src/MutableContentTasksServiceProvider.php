@@ -21,6 +21,8 @@ class MutableContentTasksServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/mutable-content-tasks.php', 'mutable-content-tasks');
 
+        $this->loadJsonTranslationsFrom(__DIR__.'/../lang');
+
         $this->callAfterResolving(MutableClassRegistry::class, function (MutableClassRegistry $registry) {
             $registry
                 ->add(Point::class)
@@ -47,7 +49,6 @@ class MutableContentTasksServiceProvider extends ServiceProvider
         ], 'mutable-content-tasks-config');
 
         $this->loadTranslationsFrom(__DIR__.'/../lang', 'mutable-content-tasks');
-        $this->loadJsonTranslationsFrom(__DIR__.'/../lang');
 
         $this->publishes([
             __DIR__.'/../lang' => $this->app->langPath('vendor/mutable-content-tasks'),
