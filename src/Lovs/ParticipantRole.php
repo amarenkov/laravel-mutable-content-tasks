@@ -10,13 +10,13 @@ use Amarenkov\MutableContent\Attributes\Lov\Item as LovItem;
 
 #[ClassCode(ParticipantRole::CLASS_CODE)]
 #[ClassLabel('Participant role')]
+#[LovItem(ParticipantRole::AUTHOR, 'Author')]
 #[LovItem(ParticipantRole::EXECUTOR, 'Executor')]
-#[LovItem(ParticipantRole::MANAGER, 'Manager')]
 class ParticipantRole extends Lov
 {
     // const
     public const CLASS_CODE = 'participant_role';
 
+    public const AUTHOR = 'author';
     public const EXECUTOR = 'executor';
-    public const MANAGER = 'manager';
 }

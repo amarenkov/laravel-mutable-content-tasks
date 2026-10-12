@@ -86,7 +86,7 @@ class ModelsTest extends TestCase
         $point = $this->makePoint(PointType::TASK);
         $actor = Actor::forUser($this->user);
 
-        foreach ([ParticipantRole::MANAGER, ParticipantRole::EXECUTOR] as $role) {
+        foreach ([ParticipantRole::AUTHOR, ParticipantRole::EXECUTOR] as $role) {
             $participant = new Participant();
             $participant->fill([Participant::FIELD_POINT_ID => $point->id, Participant::FIELD_ACTOR_ID => $actor->id, Participant::FIELD_ROLE => $role]);
             $participant->save();

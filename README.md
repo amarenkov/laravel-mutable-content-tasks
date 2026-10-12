@@ -29,6 +29,40 @@ tasks, their participants and time tracking, with services and events to build a
 composer require amarenkov/laravel-mutable-content-tasks
 ```
 
+## Usage
+
+Every change goes through a service. `by()` names the actor doing it: its user becomes the author
+of the change log entry; `logComment()` adds a comment to the entry.
+
+```php
+use Amarenkov\MutableContentTasks\Lovs\ParticipantRole;
+use Amarenkov\MutableContentTasks\Lovs\PointType;
+use Amarenkov\MutableContentTasks\Models\Actor;
+use Amarenkov\MutableContentTasks\Services\Points;
+use Amarenkov\MutableContentTasks\Services\Time;
+
+$me = Actor::forUser($request->user());
+
+$task = Points::new(PointType::TASK)->by($me)->fields(['description' => 'Rewrite the app'])->save();
+$part = Points::new(PointType::TASK)->in($task)->by($me)->fields(['description' => 'Models'])->save();
+
+Points::of($task)->by($me)->addParticipant($executor, ParticipantRole::EXECUTOR);
+Points::of($part)->by($me)->logComment('Typo')->update(['description' => 'Domain models']);
+Points::of($part)->by($me)->moveTo(null);
+Points::of($part)->by($me)->delete();
+
+Time::of($me)->on($task)->comment('Models')->start();
+Time::of($me)->stop();
+```
+
+The creator of a point becomes its `author` participant. A point with children cannot be deleted,
+and a point cannot be moved inside itself; both throw `DomainException`. Starting time tracking
+stops the running entry of the actor.
+
+Events are dispatched after the transaction commits: `PointCreated`, `PointUpdated` (with the
+changed fields), `PointMoved`, `PointDeleted`, `ParticipantAdded`, `ParticipantRemoved`,
+`TimeEntryStarted`, `TimeEntryStopped`. They carry ids, so listeners may be queued.
+
 ## Translations
 
 Strings are in `lang/{en,ru}/tasks.php` under the `mutable-content-tasks` namespace. Publish them
