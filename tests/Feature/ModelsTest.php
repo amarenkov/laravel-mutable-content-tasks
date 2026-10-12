@@ -2,6 +2,8 @@
 
 namespace Amarenkov\MutableContentTasks\Tests\Feature;
 
+use DomainException;
+
 use Illuminate\Database\UniqueConstraintViolationException;
 
 use Amarenkov\MutableContent\Models\Field\Field;
@@ -19,6 +21,10 @@ class ModelsTest extends TestCase
 {
     protected function makePoint(string $type, array $fields = []): Point
     {
+        if (!isset($fields[Point::FIELD_EXCERPT]) && !isset($fields['description'])) {
+            $fields[Point::FIELD_EXCERPT] = 'Point';
+        }
+
         $point = new Point();
         $point->fill([Point::FIELD_TYPE => $type] + $fields);
         $point->save();
@@ -61,6 +67,41 @@ class ModelsTest extends TestCase
         $explicit = $this->makePoint(PointType::TASK, [Point::FIELD_EXCERPT => 'Short', 'description' => 'Long description']);
 
         $this->assertSame('Short', $explicit->fresh()->{Point::FIELD_EXCERPT});
+    }
+
+    public function test_excerpt_follows_the_description_until_changed_by_hand(): void
+    {
+        $point = $this->makePoint(PointType::TASK, ['description' => 'Draft']);
+
+        $point->fill(['description' => 'Rewrite the app'])->save();
+
+        $this->assertSame('Rewrite the app', $point->fresh()->{Point::FIELD_EXCERPT});
+
+        $point->fill([Point::FIELD_EXCERPT => 'Rewrite'])->save();
+        $point->fill(['description' => 'Rewrite the app from scratch'])->save();
+
+        $this->assertSame('Rewrite', $point->fresh()->{Point::FIELD_EXCERPT});
+
+        $point->fill([Point::FIELD_EXCERPT => null])->save();
+
+        $this->assertSame('Rewrite the app from scratch', $point->fresh()->{Point::FIELD_EXCERPT});
+
+        $point->fill(['description' => null])->save();
+
+        $this->assertSame('Rewrite the app from scratch', $point->fresh()->{Point::FIELD_EXCERPT});
+
+        $this->expectException(DomainException::class);
+
+        $point->fill([Point::FIELD_EXCERPT => null])->save();
+    }
+
+    public function test_point_needs_an_excerpt_or_a_description(): void
+    {
+        $this->expectException(DomainException::class);
+
+        $point = new Point();
+        $point->fill([Point::FIELD_TYPE => PointType::TASK]);
+        $point->save();
     }
 
     public function test_actor_of_a_user_is_created_once(): void
@@ -107,5 +148,22 @@ class ModelsTest extends TestCase
         foreach ([Point::FIELD_TYPE, Point::FIELD_PARENT_ID, Point::FIELD_EXCERPT, Participant::FIELD_ROLE] as $code) {
             $this->assertTrue(Field::where('fields->code', $code)->first()?->isSystem(), $code);
         }
+    }
+
+    public function test_points_of_a_participant(): void
+    {
+        $actor = Actor::forUser($this->user);
+        $mine = $this->makePoint(PointType::TASK);
+        $authored = $this->makePoint(PointType::TASK);
+        $this->makePoint(PointType::TASK);
+
+        foreach ([[$mine, ParticipantRole::EXECUTOR], [$authored, ParticipantRole::AUTHOR]] as [$point, $role]) {
+            $participant = new Participant();
+            $participant->fill([Participant::FIELD_POINT_ID => $point->id, Participant::FIELD_ACTOR_ID => $actor->id, Participant::FIELD_ROLE => $role]);
+            $participant->save();
+        }
+
+        $this->assertSame([$mine->id], Point::query()->whereParticipant($actor, ParticipantRole::EXECUTOR)->pluck('id')->all());
+        $this->assertSame([$mine->id, $authored->id], Point::query()->whereParticipant($actor)->orderBy('id')->pluck('id')->all());
     }
 }

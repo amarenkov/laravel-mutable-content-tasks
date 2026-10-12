@@ -96,9 +96,9 @@ class ServicesTest extends TestCase
     {
         Event::fake(self::EVENTS);
 
-        $task = Points::new(PointType::TASK)->save();
-        $part = Points::new(PointType::TASK)->in($task)->save();
-        $other = Points::new(PointType::TASK)->save();
+        $task = Points::new(PointType::TASK)->fields([Point::FIELD_EXCERPT => 'Point'])->save();
+        $part = Points::new(PointType::TASK)->in($task)->fields([Point::FIELD_EXCERPT => 'Point'])->save();
+        $other = Points::new(PointType::TASK)->fields([Point::FIELD_EXCERPT => 'Point'])->save();
 
         Points::of($part)->moveTo($other);
 
@@ -111,15 +111,15 @@ class ServicesTest extends TestCase
 
         $this->expectException(DomainException::class);
 
-        Points::of($task)->moveTo(Points::new(PointType::COMMENT)->in($task)->save());
+        Points::of($task)->moveTo(Points::new(PointType::COMMENT)->in($task)->fields([Point::FIELD_EXCERPT => 'Point'])->save());
     }
 
     public function test_delete_refuses_points_with_children(): void
     {
         Event::fake(self::EVENTS);
 
-        $task = Points::new(PointType::TASK)->save();
-        $part = Points::new(PointType::TASK)->in($task)->save();
+        $task = Points::new(PointType::TASK)->fields([Point::FIELD_EXCERPT => 'Point'])->save();
+        $part = Points::new(PointType::TASK)->in($task)->fields([Point::FIELD_EXCERPT => 'Point'])->save();
 
         try {
             Points::of($task)->delete();
@@ -141,7 +141,7 @@ class ServicesTest extends TestCase
         $author = Actor::forUser($this->user);
         $executor = $this->otherActor();
 
-        $task = Points::new(PointType::TASK)->save();
+        $task = Points::new(PointType::TASK)->fields([Point::FIELD_EXCERPT => 'Point'])->save();
 
         Points::of($task)->by($author)->addParticipant($executor, ParticipantRole::EXECUTOR);
 
@@ -159,5 +159,30 @@ class ServicesTest extends TestCase
         $this->expectException(DomainException::class);
 
         Points::of($task)->removeParticipant($executor, ParticipantRole::AUTHOR);
+    }
+
+    public function test_participants_of_a_role_are_synced(): void
+    {
+        Event::fake(self::EVENTS);
+
+        $me = Actor::forUser($this->user);
+        $other = $this->otherActor();
+        $task = Points::new(PointType::TASK)->fields([Point::FIELD_EXCERPT => 'Point'])->save();
+
+        Points::of($task)->by($me)->syncParticipants(ParticipantRole::EXECUTOR, [$me]);
+        Points::of($task)->by($me)->syncParticipants(ParticipantRole::EXECUTOR, [$me]);
+
+        $this->assertSame([$task->id], Point::query()->whereParticipant($me, ParticipantRole::EXECUTOR)->pluck('id')->all());
+        Event::assertDispatchedTimes(ParticipantAdded::class, 1);
+
+        Points::of($task)->by($me)->syncParticipants(ParticipantRole::EXECUTOR, [$other]);
+
+        $this->assertSame([], Point::query()->whereParticipant($me, ParticipantRole::EXECUTOR)->pluck('id')->all());
+        $this->assertSame([$task->id], Point::query()->whereParticipant($other, ParticipantRole::EXECUTOR)->pluck('id')->all());
+        Event::assertDispatched(ParticipantRemoved::class, fn (ParticipantRemoved $event) => $event->participantActorId === $me->id);
+
+        Points::of($task)->syncParticipants(ParticipantRole::EXECUTOR, []);
+
+        $this->assertSame(0, $task->participants()->count());
     }
 }

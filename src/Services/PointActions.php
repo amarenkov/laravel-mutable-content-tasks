@@ -113,6 +113,47 @@ class PointActions
     }
 
     /**
+     * Make the actors the only ones in the role: missing ones are added, the rest removed.
+     *
+     * @param iterable<Actor> $actors
+     */
+    public function syncParticipants(string $role, iterable $actors): void
+    {
+        $wanted = [];
+
+        foreach ($actors as $actor) {
+            $wanted[$actor->id] = $actor;
+        }
+
+        DB::transaction(function () use ($role, $wanted) {
+            $current = Participant::query()
+                ->whereField(Participant::FIELD_POINT_ID, $this->point->id)
+                ->whereField(Participant::FIELD_ROLE, $role)
+                ->get();
+
+            foreach ($current as $record) {
+                $actorId = (int)$record->getField(Participant::FIELD_ACTOR_ID);
+
+                if (isset($wanted[$actorId])) {
+                    unset($wanted[$actorId]);
+
+                    continue;
+                }
+
+                $actor = Actor::query()->find($actorId);
+
+                if ($actor) {
+                    $this->removeParticipant($actor, $role);
+                }
+            }
+
+            foreach ($wanted as $actor) {
+                $this->addParticipant($actor, $role);
+            }
+        });
+    }
+
+    /**
      * @throws DomainException when the actor has no such role in the point
      */
     public function removeParticipant(Actor $participant, string $role): void

@@ -2,7 +2,10 @@
 
 namespace Amarenkov\MutableContentTasks\Models;
 
+use DomainException;
+
 use Illuminate\Database\Eloquent\Attributes\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -24,6 +27,7 @@ use Amarenkov\MutableContentTasks\Lovs\PointType;
 
 /**
  * A point: a task, a comment or any other type; points form a tree, so any point can be split into parts.
+ * The excerpt is a short plain line naming the point, required; it follows the description until it is changed by hand.
  */
 #[Table('tasks.points')]
 #[ClassLabel('Point')]
@@ -63,11 +67,22 @@ class Point extends ModelWithFields
     protected static function booted(): void
     {
         static::saving(function (Point $point) {
-            $excerpt = (string)$point->getField(self::FIELD_EXCERPT);
-            $description = (string)$point->getField(DomainField::COMMON_CODE_DESCRIPTION);
+            $original = $point->getOriginal(self::FIELDS_COLUMN);
+            $original = is_array($original) ? $original : ($original?->toArray() ?? []);
 
-            if ($excerpt === '' && $description !== '') {
+            $description = (string)$point->getField(DomainField::COMMON_CODE_DESCRIPTION);
+            $excerpt = (string)$point->getField(self::FIELD_EXCERPT);
+            $oldDescription = (string)($original[DomainField::COMMON_CODE_DESCRIPTION] ?? '');
+            $oldExcerpt = (string)($original[self::FIELD_EXCERPT] ?? '');
+
+            $followsDescription = $oldExcerpt === '' || $oldExcerpt === static::prepareExcerpt($oldDescription);
+
+            if ($description !== '' && ($excerpt === '' || ($followsDescription && $excerpt === $oldExcerpt && $description !== $oldDescription))) {
                 $point->{self::FIELD_EXCERPT} = static::prepareExcerpt($description);
+            }
+
+            if ((string)$point->getField(self::FIELD_EXCERPT) === '') {
+                throw new DomainException(__('mutable-content-tasks::tasks.point_excerpt_required'));
             }
         });
     }
@@ -81,6 +96,19 @@ class Point extends ModelWithFields
     public function children(): HasMany
     {
         return $this->hasMany(Point::class, self::FIELD_PARENT_ID);
+    }
+
+    /**
+     * Points where the actor takes part, in the role when given.
+     */
+    public function scopeWhereParticipant(Builder $query, Actor $actor, ?string $role = null): Builder
+    {
+        $participants = Participant::query()
+            ->whereField(Participant::FIELD_ACTOR_ID, $actor->id)
+            ->when($role !== null, fn ($participants) => $participants->whereField(Participant::FIELD_ROLE, $role))
+            ->select(Participant::FIELD_POINT_ID);
+
+        return $query->whereIn($query->qualifyColumn($this->getKeyName()), $participants);
     }
 
     public function participants(): HasMany

@@ -50,11 +50,17 @@ class TimeActions
     }
 
     /**
-     * Start an entry now, stopping the running one.
+     * Start an entry now, stopping the running one; an entry already running on the same point goes on.
      */
     public function start(): TimeEntry
     {
         return DB::transaction(function () {
+            $running = TimeEntry::running($this->worker);
+
+            if ($running && $running->pointId() === $this->point?->id) {
+                return $running;
+            }
+
             $now = Carbon::now();
 
             $this->stopAt($now);
@@ -96,9 +102,7 @@ class TimeActions
         $this->prepareLog($entry);
         $entry->save();
 
-        $pointId = $entry->getField(TimeEntry::FIELD_POINT_ID);
-
-        event(new TimeEntryStopped($entry->id, $this->worker->id, $pointId === null ? null : (int)$pointId, $entry->seconds()));
+        event(new TimeEntryStopped($entry->id, $this->worker->id, $entry->pointId(), $entry->seconds()));
 
         return $entry;
     }
