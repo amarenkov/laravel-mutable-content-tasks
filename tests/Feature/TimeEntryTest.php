@@ -123,6 +123,8 @@ class TimeEntryTest extends TestCase
 
         $this->assertSame(3 * 3600, TimeEntry::secondsOn($actor, $models));
         $this->assertSame(1800, TimeEntry::secondsOn($actor, $screens));
+        $this->assertSame([$models->id => 3 * 3600, $screens->id => 1800, 999999 => 0], TimeEntry::secondsByPoint($actor, [$models->id, $screens->id, 999999]));
+        $this->assertSame([], TimeEntry::secondsByPoint($actor, []));
 
         $day = Carbon::parse('2026-10-10');
 

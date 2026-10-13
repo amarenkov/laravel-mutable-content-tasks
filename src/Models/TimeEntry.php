@@ -82,6 +82,32 @@ class TimeEntry extends ModelWithFields
     }
 
     /**
+     * Seconds the actor worked on each of the points, running entries up to now, in one query.
+     *
+     * @param array<int> $pointIds
+     * @return array<int, int> point id => seconds, points without time included as 0
+     */
+    public static function secondsByPoint(Actor $actor, array $pointIds): array
+    {
+        $result = array_fill_keys(array_map('intval', $pointIds), 0);
+
+        if (!$result) {
+            return [];
+        }
+
+        $entries = self::query()
+            ->whereField(self::FIELD_ACTOR_ID, $actor->id)
+            ->whereIn(self::FIELD_POINT_ID, array_keys($result))
+            ->get();
+
+        foreach ($entries as $entry) {
+            $result[$entry->pointId()] += $entry->seconds();
+        }
+
+        return $result;
+    }
+
+    /**
      * Seconds the actor worked within the period by point id, most first; entries are cut by the period bounds, a
      * running entry counts up to now, work on nothing in particular goes under an empty key.
      *
