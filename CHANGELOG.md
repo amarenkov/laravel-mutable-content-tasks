@@ -7,6 +7,8 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-15
+
 ### Added
 
 - `Point`: a task, a comment or a point of another type (the `point_type` LOV, `Point::typeField()`), with `excerpt` (a short plain line, required) and `description`; an empty excerpt is taken from the description and follows it until changed by hand, a point with neither throws `DomainException`. Points form a tree through `parent_id`; `whereParticipant($actor, $role)` finds the points of an actor.
@@ -18,4 +20,5 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Events dispatched after commit: `PointCreated`, `PointUpdated`, `PointMoved`, `PointDeleted`, `ParticipantAdded`, `ParticipantRemoved`, `TimeEntryStarted`, `TimeEntryStopped`.
 - Migrations in the `tasks` schema (publish tag `mutable-content-tasks-migrations`), LOVs and classes registered in the core registries, Russian labels.
 
-[Unreleased]: https://github.com/amarenkov/laravel-mutable-content-tasks/commits/main
+[Unreleased]: https://github.com/amarenkov/laravel-mutable-content-tasks/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/amarenkov/laravel-mutable-content-tasks/releases/tag/v0.1.0
