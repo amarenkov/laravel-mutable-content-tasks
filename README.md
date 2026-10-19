@@ -55,6 +55,8 @@ Points::of($part)->by($me)->delete();
 
 Time::of($me)->on($task)->comment('Models')->start();
 Time::of($me)->stop();
+Time::entry($entry)->by($me)->update([TimeEntry::FIELD_FROM => now()->subHour(), TimeEntry::FIELD_POINT_ID => $task->id]);
+Time::entry($entry)->by($me)->delete();
 
 Point::query()->whereParticipant($me, ParticipantRole::EXECUTOR)->get();
 TimeEntry::last($me, onPoint: true);
@@ -67,10 +69,13 @@ TimeEntry::report($me, now()->startOfDay(), now()->endOfDay()); // [point id => 
 The creator of a point becomes its `author` participant. A point with children cannot be deleted,
 and a point cannot be moved inside itself; both throw `DomainException`. Starting time tracking
 stops the running entry of the actor, unless it runs on the same point: then it goes on.
+A corrected entry keeps its actor, must end after it starts, not in the future and not overlap
+other entries of the actor; a finished entry cannot be made running again (`DomainException`).
 
 Events are dispatched after the transaction commits: `PointCreated`, `PointUpdated` (with the
 changed fields), `PointMoved`, `PointDeleted`, `ParticipantAdded`, `ParticipantRemoved`,
-`TimeEntryStarted`, `TimeEntryStopped`. They carry ids, so listeners may be queued.
+`TimeEntryStarted`, `TimeEntryStopped`, `TimeEntryUpdated` (with the changed fields and the
+previous point), `TimeEntryDeleted`. They carry ids, so listeners may be queued.
 
 ## Translations
 

@@ -7,6 +7,10 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Time::entry($entry)`: correct a time entry (`update()`: from, to, point, comment; the period must end after it starts, not lie in the future and not overlap other entries of the actor, a finished entry cannot run again) and `delete()` it; events `TimeEntryUpdated` (changed fields, previous point) and `TimeEntryDeleted`.
+
 ## [0.1.0] - 2026-10-15
 
 ### Added

@@ -2,11 +2,15 @@
 
 namespace Amarenkov\MutableContentTasks\Tests\Feature;
 
+use DomainException;
+
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
 
+use Amarenkov\MutableContentTasks\Events\TimeEntryDeleted;
 use Amarenkov\MutableContentTasks\Events\TimeEntryStarted;
 use Amarenkov\MutableContentTasks\Events\TimeEntryStopped;
+use Amarenkov\MutableContentTasks\Events\TimeEntryUpdated;
 use Amarenkov\MutableContentTasks\Lovs\PointType;
 use Amarenkov\MutableContentTasks\Models\Actor;
 use Amarenkov\MutableContentTasks\Models\Point;
@@ -157,5 +161,102 @@ class TimeEntryTest extends TestCase
 
         $this->assertSame($idle->id, TimeEntry::last($actor)->id);
         $this->assertSame($onPoint->id, TimeEntry::last($actor, onPoint: true)->id);
+    }
+
+    public function test_entry_is_corrected_and_moved(): void
+    {
+        Event::fake([TimeEntryUpdated::class]);
+
+        $actor = Actor::forUser($this->user);
+        $first = $this->makeTask('First');
+        $second = $this->makeTask('Second');
+
+        Carbon::setTestNow('2026-10-10 10:00:00');
+        $entry = Time::of($actor)->on($first)->start();
+        Carbon::setTestNow('2026-10-10 11:00:00');
+        Time::of($actor)->stop();
+
+        Time::entry($entry->fresh())->by($actor)->update([TimeEntry::FIELD_COMMENT => null]);
+        Event::assertNotDispatched(TimeEntryUpdated::class);
+
+        $entry = Time::entry($entry->fresh())->by($actor)->update([
+            TimeEntry::FIELD_FROM => Carbon::parse('2026-10-10 10:15:00'),
+            TimeEntry::FIELD_POINT_ID => $second->id,
+            TimeEntry::FIELD_COMMENT => 'Fixed',
+        ]);
+
+        $this->assertSame(2700, $entry->fresh()->seconds());
+        $this->assertSame($second->id, $entry->fresh()->pointId());
+        Event::assertDispatched(TimeEntryUpdated::class, fn (TimeEntryUpdated $event) => $event->timeEntryId === $entry->id
+            && $event->actorId === $actor->id && $event->pointId === $second->id && $event->previousPointId === $first->id);
+    }
+
+    public function test_running_entry_may_be_stopped_by_correction(): void
+    {
+        $actor = Actor::forUser($this->user);
+
+        Carbon::setTestNow('2026-10-10 10:00:00');
+        $entry = Time::of($actor)->start();
+        Carbon::setTestNow('2026-10-10 11:00:00');
+
+        Time::entry($entry)->update([TimeEntry::FIELD_FROM => Carbon::parse('2026-10-10 09:00:00')]);
+        $this->assertTrue($entry->fresh()->isRunning());
+
+        Time::entry($entry->fresh())->update([TimeEntry::FIELD_TO => Carbon::parse('2026-10-10 10:30:00')]);
+        $this->assertNull(TimeEntry::running($actor));
+        $this->assertSame(5400, $entry->fresh()->seconds());
+
+        $this->expectException(DomainException::class);
+        Time::entry($entry->fresh())->update([TimeEntry::FIELD_TO => null]);
+    }
+
+    public function test_correction_refuses_bad_periods(): void
+    {
+        $actor = Actor::forUser($this->user);
+
+        Carbon::setTestNow('2026-10-10 10:00:00');
+        $entry = Time::of($actor)->start();
+        Carbon::setTestNow('2026-10-10 11:00:00');
+        Time::of($actor)->on($this->makeTask('Work'))->start();
+        Carbon::setTestNow('2026-10-10 12:00:00');
+        Time::of($actor)->stop();
+
+        $entry = $entry->fresh();
+        $bad = [
+            [TimeEntry::FIELD_TO => Carbon::parse('2026-10-10 09:00:00')],
+            [TimeEntry::FIELD_TO => Carbon::parse('2026-10-10 11:30:00')],
+            [TimeEntry::FIELD_FROM => Carbon::parse('2026-10-10 11:10:00'), TimeEntry::FIELD_TO => Carbon::parse('2026-10-10 11:20:00')],
+            [TimeEntry::FIELD_FROM => Carbon::parse('2026-10-10 12:30:00'), TimeEntry::FIELD_TO => Carbon::parse('2026-10-10 13:00:00')],
+        ];
+
+        foreach ($bad as $fields) {
+            try {
+                Time::entry(TimeEntry::query()->find($entry->id))->update($fields);
+                $this->fail('No exception for '.json_encode($fields));
+            } catch (DomainException) {
+            }
+        }
+
+        $this->assertSame(3600, $entry->fresh()->seconds());
+
+        Time::entry($entry->fresh())->update([TimeEntry::FIELD_FROM => Carbon::parse('2026-10-10 09:00:00')]);
+        $this->assertSame(7200, $entry->fresh()->seconds());
+    }
+
+    public function test_entry_is_deleted(): void
+    {
+        Event::fake([TimeEntryDeleted::class]);
+
+        $actor = Actor::forUser($this->user);
+        $point = $this->makeTask('Work');
+
+        Carbon::setTestNow('2026-10-10 10:00:00');
+        $entry = Time::of($actor)->on($point)->start();
+
+        Time::entry($entry)->by($actor)->delete();
+
+        $this->assertNull(TimeEntry::running($actor));
+        $this->assertSame(0, $actor->timeEntries()->count());
+        Event::assertDispatched(TimeEntryDeleted::class, fn (TimeEntryDeleted $event) => $event->timeEntryId === $entry->id && $event->pointId === $point->id);
     }
 }
