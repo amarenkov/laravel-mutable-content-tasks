@@ -7,6 +7,8 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-19
+
 ### Added
 
 - `Time::entry($entry)`: correct a time entry (`update()`: from, to, point, comment; the period must end after it starts, not lie in the future and not overlap other entries of the actor, a finished entry cannot run again) and `delete()` it; events `TimeEntryUpdated` (changed fields, previous point) and `TimeEntryDeleted`.
@@ -24,5 +26,6 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Events dispatched after commit: `PointCreated`, `PointUpdated`, `PointMoved`, `PointDeleted`, `ParticipantAdded`, `ParticipantRemoved`, `TimeEntryStarted`, `TimeEntryStopped`.
 - Migrations in the `tasks` schema (publish tag `mutable-content-tasks-migrations`), LOVs and classes registered in the core registries, Russian labels.
 
-[Unreleased]: https://github.com/amarenkov/laravel-mutable-content-tasks/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/amarenkov/laravel-mutable-content-tasks/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/amarenkov/laravel-mutable-content-tasks/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/amarenkov/laravel-mutable-content-tasks/releases/tag/v0.1.0
