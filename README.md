@@ -51,6 +51,8 @@ Points::of($task)->by($me)->addParticipant($executor, ParticipantRole::EXECUTOR)
 Points::of($task)->by($me)->syncParticipants(ParticipantRole::EXECUTOR, [$executor]); // the only executor
 Points::of($part)->by($me)->logComment('Typo')->update(['description' => 'Domain models']);
 Points::of($part)->by($me)->moveTo(null);
+Points::of($task)->by($me)->close(); // time running on it stops
+Points::of($task)->by($me)->reopen();
 Points::of($part)->by($me)->delete();
 
 Time::of($me)->on($task)->comment('Models')->start();
@@ -58,7 +60,8 @@ Time::of($me)->stop();
 Time::entry($entry)->by($me)->update([TimeEntry::FIELD_FROM => now()->subHour(), TimeEntry::FIELD_POINT_ID => $task->id]);
 Time::entry($entry)->by($me)->delete();
 
-Point::query()->whereParticipant($me, ParticipantRole::EXECUTOR)->get();
+Point::query()->whereParticipant($me, ParticipantRole::EXECUTOR)->whereOpen()->get();
+$task->isClosed();
 TimeEntry::last($me, onPoint: true);
 TimeEntry::secondsOn($me, $task);
 Duration::clock(5400); // 01:30:00
@@ -69,11 +72,14 @@ TimeEntry::report($me, now()->startOfDay(), now()->endOfDay()); // [point id => 
 The creator of a point becomes its `author` participant. A point with children cannot be deleted,
 and a point cannot be moved inside itself; both throw `DomainException`. Starting time tracking
 stops the running entry of the actor, unless it runs on the same point: then it goes on.
+A point is `open` or `closed` (the `point_status` LOV; a point without a status is open). Closing
+stops the time running on the point, and time cannot be started on a closed point until it is
+reopened (`DomainException`).
 A corrected entry keeps its actor, must end after it starts, not in the future and not overlap
 other entries of the actor; a finished entry cannot be made running again (`DomainException`).
 
 Events are dispatched after the transaction commits: `PointCreated`, `PointUpdated` (with the
-changed fields), `PointMoved`, `PointDeleted`, `ParticipantAdded`, `ParticipantRemoved`,
+changed fields), `PointMoved`, `PointClosed`, `PointReopened`, `PointDeleted`, `ParticipantAdded`, `ParticipantRemoved`,
 `TimeEntryStarted`, `TimeEntryStopped`, `TimeEntryUpdated` (with the changed fields and the
 previous point), `TimeEntryDeleted`. They carry ids, so listeners may be queued.
 

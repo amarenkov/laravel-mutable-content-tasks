@@ -23,11 +23,13 @@ use Amarenkov\MutableContent\Attributes\FieldAttr\Common\IsRequired as CFAIsRequ
 use Amarenkov\MutableContent\Attributes\FieldAttr\Common\LovCode as CFALovCode;
 use Amarenkov\MutableContent\Attributes\FieldAttr\Common\ObjectClass as CFAObjectClass;
 
+use Amarenkov\MutableContentTasks\Lovs\PointStatus;
 use Amarenkov\MutableContentTasks\Lovs\PointType;
 
 /**
  * A point: a task, a comment or any other type; points form a tree, so any point can be split into parts.
  * The excerpt is a short plain line naming the point, required; it follows the description until it is changed by hand.
+ * A point without a status is open.
  */
 #[Table('tasks.points')]
 #[ClassLabel('Point')]
@@ -43,6 +45,9 @@ class Point extends ModelWithFields
 
     #[CFAType(Type::TYPE_STRING), CFALabel('Excerpt')]
     public const FIELD_EXCERPT = 'excerpt';
+
+    #[CFAType(Type::TYPE_LOV_ITEM), CFALabel('Status'), CFALovCode(PointStatus::CLASS_CODE)]
+    public const FIELD_STATUS = 'status';
 
     public const EXCERPT_MAX_LENGTH = 255;
 
@@ -109,6 +114,23 @@ class Point extends ModelWithFields
             ->select(Participant::FIELD_POINT_ID);
 
         return $query->whereIn($query->qualifyColumn($this->getKeyName()), $participants);
+    }
+
+    public function scopeWhereOpen(Builder $query): Builder
+    {
+        return $query->where(fn ($open) => $open
+            ->whereField(self::FIELD_STATUS, null)
+            ->whereField(self::FIELD_STATUS, '<>', PointStatus::CLOSED, 'or'));
+    }
+
+    public function scopeWhereClosed(Builder $query): Builder
+    {
+        return $query->whereField(self::FIELD_STATUS, PointStatus::CLOSED);
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->getField(self::FIELD_STATUS) === PointStatus::CLOSED;
     }
 
     public function participants(): HasMany

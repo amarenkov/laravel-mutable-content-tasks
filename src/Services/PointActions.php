@@ -10,12 +10,16 @@ use Amarenkov\MutableContent\Domain\Log\Changes;
 
 use Amarenkov\MutableContentTasks\Events\ParticipantAdded;
 use Amarenkov\MutableContentTasks\Events\ParticipantRemoved;
+use Amarenkov\MutableContentTasks\Events\PointClosed;
 use Amarenkov\MutableContentTasks\Events\PointDeleted;
 use Amarenkov\MutableContentTasks\Events\PointMoved;
+use Amarenkov\MutableContentTasks\Events\PointReopened;
 use Amarenkov\MutableContentTasks\Events\PointUpdated;
+use Amarenkov\MutableContentTasks\Lovs\PointStatus;
 use Amarenkov\MutableContentTasks\Models\Actor;
 use Amarenkov\MutableContentTasks\Models\Participant;
 use Amarenkov\MutableContentTasks\Models\Point;
+use Amarenkov\MutableContentTasks\Models\TimeEntry;
 use Amarenkov\MutableContentTasks\Services\Concerns\ActsAs;
 
 /**
@@ -72,6 +76,59 @@ class PointActions
             $this->point->save();
 
             event(new PointMoved($this->point->id, $this->actor?->id, $from === null ? null : (int)$from, $parent?->id));
+
+            return $this->point;
+        });
+    }
+
+    /**
+     * Close the point; time running on it stops. A closed point stays as it is.
+     */
+    public function close(): Point
+    {
+        if ($this->point->isClosed()) {
+            return $this->point;
+        }
+
+        return DB::transaction(function () {
+            $running = TimeEntry::query()
+                ->whereField(TimeEntry::FIELD_POINT_ID, $this->point->id)
+                ->whereField(TimeEntry::FIELD_TO, null)
+                ->get();
+
+            foreach ($running as $entry) {
+                $worker = Actor::query()->find($entry->getField(TimeEntry::FIELD_ACTOR_ID));
+
+                if ($worker) {
+                    Time::of($worker)->by($this->actor ?? $worker)->stop();
+                }
+            }
+
+            $this->point->fill([Point::FIELD_STATUS => PointStatus::CLOSED]);
+            $this->prepareLog($this->point);
+            $this->point->save();
+
+            event(new PointClosed($this->point->id, $this->actor?->id));
+
+            return $this->point;
+        });
+    }
+
+    /**
+     * Open a closed point again. An open point stays as it is.
+     */
+    public function reopen(): Point
+    {
+        if (!$this->point->isClosed()) {
+            return $this->point;
+        }
+
+        return DB::transaction(function () {
+            $this->point->fill([Point::FIELD_STATUS => PointStatus::OPEN]);
+            $this->prepareLog($this->point);
+            $this->point->save();
+
+            event(new PointReopened($this->point->id, $this->actor?->id));
 
             return $this->point;
         });

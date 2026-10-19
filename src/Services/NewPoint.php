@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Amarenkov\MutableContentTasks\Events\ParticipantAdded;
 use Amarenkov\MutableContentTasks\Events\PointCreated;
 use Amarenkov\MutableContentTasks\Lovs\ParticipantRole;
+use Amarenkov\MutableContentTasks\Lovs\PointStatus;
 use Amarenkov\MutableContentTasks\Models\Participant;
 use Amarenkov\MutableContentTasks\Models\Point;
 use Amarenkov\MutableContentTasks\Services\Concerns\ActsAs;
@@ -48,7 +49,7 @@ class NewPoint
     {
         return DB::transaction(function () {
             $point = new Point();
-            $point->fill([Point::FIELD_TYPE => $this->type, Point::FIELD_PARENT_ID => $this->parent?->id] + $this->fields);
+            $point->fill([Point::FIELD_TYPE => $this->type, Point::FIELD_PARENT_ID => $this->parent?->id] + $this->fields + [Point::FIELD_STATUS => PointStatus::OPEN]);
             $this->prepareLog($point);
             $point->save();
 

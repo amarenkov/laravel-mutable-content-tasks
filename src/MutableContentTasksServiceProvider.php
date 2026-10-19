@@ -9,6 +9,7 @@ use Amarenkov\MutableContent\Domain\MutableClassRegistry;
 
 use Amarenkov\MutableContentTasks\Lovs\ActorType;
 use Amarenkov\MutableContentTasks\Lovs\ParticipantRole;
+use Amarenkov\MutableContentTasks\Lovs\PointStatus;
 use Amarenkov\MutableContentTasks\Lovs\PointType;
 use Amarenkov\MutableContentTasks\Models\Actor;
 use Amarenkov\MutableContentTasks\Models\Participant;
@@ -35,6 +36,7 @@ class MutableContentTasksServiceProvider extends ServiceProvider
         $this->callAfterResolving(LovRegistry::class, function (LovRegistry $registry) {
             $registry
                 ->addClass(PointType::class)
+                ->addClass(PointStatus::class)
                 ->addClass(ActorType::class)
                 ->addClass(ParticipantRole::class);
         });

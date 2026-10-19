@@ -7,6 +7,15 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Point status: `open` or `closed` (the `point_status` LOV, `Point::FIELD_STATUS`; new points are open, a point without a status counts as open), `isClosed()`, scopes `whereOpen()` and `whereClosed()`.
+- `Points::of($point)->close()` stops the time running on the point and closes it, `reopen()` opens it again; events `PointClosed` and `PointReopened`.
+
+### Changed
+
+- Starting time on a closed point throws `DomainException`.
+
 ## [0.1.1] - 2026-10-19
 
 ### Added

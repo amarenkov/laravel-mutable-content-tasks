@@ -12,15 +12,20 @@ use Amarenkov\MutableContent\Helpers\LogHelper;
 use Amarenkov\MutableContentTasks\Events\ParticipantAdded;
 use Amarenkov\MutableContentTasks\Events\ParticipantRemoved;
 use Amarenkov\MutableContentTasks\Events\PointCreated;
+use Amarenkov\MutableContentTasks\Events\PointClosed;
 use Amarenkov\MutableContentTasks\Events\PointDeleted;
 use Amarenkov\MutableContentTasks\Events\PointMoved;
+use Amarenkov\MutableContentTasks\Events\PointReopened;
 use Amarenkov\MutableContentTasks\Events\PointUpdated;
 use Amarenkov\MutableContentTasks\Lovs\ParticipantRole;
+use Amarenkov\MutableContentTasks\Lovs\PointStatus;
 use Amarenkov\MutableContentTasks\Lovs\PointType;
 use Amarenkov\MutableContentTasks\Models\Actor;
 use Amarenkov\MutableContentTasks\Models\Participant;
 use Amarenkov\MutableContentTasks\Models\Point;
+use Amarenkov\MutableContentTasks\Models\TimeEntry;
 use Amarenkov\MutableContentTasks\Services\Points;
+use Amarenkov\MutableContentTasks\Services\Time;
 
 use Amarenkov\MutableContentTasks\Tests\Fixtures\Models\User;
 use Amarenkov\MutableContentTasks\Tests\TestCase;
@@ -32,6 +37,8 @@ class ServicesTest extends TestCase
         PointUpdated::class,
         PointMoved::class,
         PointDeleted::class,
+        PointClosed::class,
+        PointReopened::class,
         ParticipantAdded::class,
         ParticipantRemoved::class,
     ];
@@ -184,5 +191,49 @@ class ServicesTest extends TestCase
         Points::of($task)->syncParticipants(ParticipantRole::EXECUTOR, []);
 
         $this->assertSame(0, $task->participants()->count());
+    }
+
+    public function test_close_stops_the_time_and_reopen_opens_again(): void
+    {
+        Event::fake(self::EVENTS);
+
+        $actor = Actor::forUser($this->user);
+        $other = $this->otherActor();
+
+        $task = Points::new(PointType::TASK)->by($actor)->fields(['excerpt' => 'Release'])->save();
+        $old = Points::new(PointType::TASK)->fields(['excerpt' => 'Legacy'])->save();
+        $old->fill([Point::FIELD_STATUS => null])->save();
+
+        $this->assertSame(PointStatus::OPEN, $task->fresh()->{Point::FIELD_STATUS});
+        $this->assertFalse($old->fresh()->isClosed());
+
+        Time::of($actor)->on($task)->start();
+        Time::of($other)->on($task)->start();
+
+        Points::of($task)->by($actor)->close();
+        Points::of($task)->by($actor)->close();
+
+        $this->assertTrue($task->fresh()->isClosed());
+        $this->assertNull(TimeEntry::running($actor));
+        $this->assertNull(TimeEntry::running($other));
+        Event::assertDispatchedTimes(PointClosed::class, 1);
+        Event::assertDispatched(PointClosed::class, fn (PointClosed $event) => $event->pointId === $task->id && $event->actorId === $actor->id);
+
+        $this->assertSame([$old->id], Point::query()->whereOpen()->whereIn('id', [$task->id, $old->id])->pluck('id')->all());
+        $this->assertSame([$task->id], Point::query()->whereClosed()->whereIn('id', [$task->id, $old->id])->pluck('id')->all());
+
+        try {
+            Time::of($actor)->on($task)->start();
+            $this->fail('Time started on a closed point');
+        } catch (DomainException $exception) {
+            $this->assertSame(__('mutable-content-tasks::tasks.point_closed'), $exception->getMessage());
+        }
+
+        Points::of($task)->by($actor)->reopen();
+        Points::of($task)->by($actor)->reopen();
+
+        $this->assertFalse($task->fresh()->isClosed());
+        Event::assertDispatchedTimes(PointReopened::class, 1);
+        $this->assertTrue(Time::of($actor)->on($task)->start()->isRunning());
     }
 }

@@ -2,6 +2,8 @@
 
 namespace Amarenkov\MutableContentTasks\Services;
 
+use DomainException;
+
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -51,9 +53,15 @@ class TimeActions
 
     /**
      * Start an entry now, stopping the running one; an entry already running on the same point goes on.
+     *
+     * @throws DomainException when the point is closed
      */
     public function start(): TimeEntry
     {
+        if ($this->point?->isClosed()) {
+            throw new DomainException(__('mutable-content-tasks::tasks.point_closed'));
+        }
+
         return DB::transaction(function () {
             $running = TimeEntry::running($this->worker);
 
