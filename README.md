@@ -2,7 +2,7 @@
 
 [![tests](https://github.com/amarenkov/laravel-mutable-content-tasks/actions/workflows/tests.yml/badge.svg)](https://github.com/amarenkov/laravel-mutable-content-tasks/actions/workflows/tests.yml)
 [![Packagist](https://img.shields.io/packagist/v/amarenkov/laravel-mutable-content-tasks)](https://packagist.org/packages/amarenkov/laravel-mutable-content-tasks)
-![coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
+![coverage](https://img.shields.io/badge/coverage-98%25-brightgreen)
 
 Task domain for [`amarenkov/laravel-mutable-content`](https://github.com/amarenkov/laravel-mutable-content):
 tasks, their participants and time tracking, with services and events to build any interface on.

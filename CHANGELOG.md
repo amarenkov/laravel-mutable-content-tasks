@@ -7,6 +7,8 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-20
+
 ### Added
 
 - Point status: `open` or `closed` (the `point_status` LOV, `Point::FIELD_STATUS`; new points are open, a point without a status counts as open), `isClosed()`, scopes `whereOpen()` and `whereClosed()`.
@@ -35,6 +37,7 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Events dispatched after commit: `PointCreated`, `PointUpdated`, `PointMoved`, `PointDeleted`, `ParticipantAdded`, `ParticipantRemoved`, `TimeEntryStarted`, `TimeEntryStopped`.
 - Migrations in the `tasks` schema (publish tag `mutable-content-tasks-migrations`), LOVs and classes registered in the core registries, Russian labels.
 
-[Unreleased]: https://github.com/amarenkov/laravel-mutable-content-tasks/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/amarenkov/laravel-mutable-content-tasks/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/amarenkov/laravel-mutable-content-tasks/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/amarenkov/laravel-mutable-content-tasks/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/amarenkov/laravel-mutable-content-tasks/releases/tag/v0.1.0
