@@ -36,8 +36,17 @@ class PointActions
     {
     }
 
+    /**
+     * Change fields. The parent changes only by moveTo(), which checks for cycles.
+     *
+     * @throws DomainException when the fields have the parent
+     */
     public function update(array $fields): Point
     {
+        if (array_key_exists(Point::FIELD_PARENT_ID, $fields)) {
+            throw new DomainException(__('mutable-content-tasks::tasks.point_parent_by_move'));
+        }
+
         return DB::transaction(function () use ($fields) {
             $before = $this->point->fields?->toArray() ?? [];
 
@@ -197,11 +206,7 @@ class PointActions
                     continue;
                 }
 
-                $actor = Actor::query()->find($actorId);
-
-                if ($actor) {
-                    $this->removeParticipant($actor, $role);
-                }
+                $this->deleteParticipant($record, $actorId, $role);
             }
 
             foreach ($wanted as $actor) {
@@ -225,11 +230,17 @@ class PointActions
             throw new DomainException(__('mutable-content-tasks::tasks.participant_absent'));
         }
 
-        DB::transaction(function () use ($record, $participant, $role) {
+        $this->deleteParticipant($record, $participant->id, $role);
+    }
+
+    // protected
+    protected function deleteParticipant(Participant $record, int $actorId, string $role): void
+    {
+        DB::transaction(function () use ($record, $actorId, $role) {
             $this->prepareLog($record);
             $record->delete();
 
-            event(new ParticipantRemoved($this->point->id, $participant->id, $role, $this->actor?->id));
+            event(new ParticipantRemoved($this->point->id, $actorId, $role, $this->actor?->id));
         });
     }
 }

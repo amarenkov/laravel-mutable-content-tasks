@@ -21,6 +21,7 @@ use Amarenkov\MutableContent\Attributes\FieldAttr\Common\IsRequired as CFAIsRequ
 use Amarenkov\MutableContent\Attributes\FieldAttr\Common\IsImmutable as CFAIsImmutable;
 use Amarenkov\MutableContent\Attributes\FieldAttr\Common\LovCode as CFALovCode;
 use Amarenkov\MutableContent\Attributes\FieldAttr\Common\ForType as CFAForType;
+use Amarenkov\MutableContent\Helpers\UserHelper;
 
 use Amarenkov\MutableContentTasks\Lovs\ActorType;
 
@@ -40,7 +41,10 @@ class Actor extends ModelWithFields
     public const FIELD_USER_ID = 'user_id';
 
     // static
-    protected static array|bool|null $fieldDefinitions = null;
+    public static function uniqueFieldSets(): array
+    {
+        return [[self::FIELD_USER_ID]];
+    }
 
     public static function typeField(): ?string
     {
@@ -52,7 +56,7 @@ class Actor extends ModelWithFields
      */
     public static function userModel(): string
     {
-        return config('mutable-content-tasks.user_model') ?? config('auth.providers.users.model');
+        return UserHelper::model('mutable-content-tasks');
     }
 
     /**

@@ -7,6 +7,15 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `Points::of()->update()` rejects the parent: it changes only through `moveTo()`, which checks for cycles.
+
+### Fixed
+
+- `Actor::forUser()` restores a soft-deleted actor instead of failing on the unique index.
+- `syncParticipants()` also removes participants whose actor is deleted.
+- `Point::oneLineExcerpt()` keeps the words of different lines apart.
 ## [0.3.0] - 2026-11-04
 
 ### Changed

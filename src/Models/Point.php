@@ -54,8 +54,6 @@ class Point extends ModelWithFields
     protected const EXCERPT_CUT_LENGTH = 250;
 
     // static
-    protected static array|bool|null $fieldDefinitions = null;
-
     public static function typeField(): ?string
     {
         return self::FIELD_TYPE;
@@ -148,7 +146,7 @@ class Point extends ModelWithFields
      */
     public function oneLineExcerpt(int $length = 20): string
     {
-        $result = str_replace("\n", '', (string)$this->getField(self::FIELD_EXCERPT));
+        $result = (string)preg_replace('/\s*\R\s*/u', ' ', (string)$this->getField(self::FIELD_EXCERPT));
 
         return mb_strlen($result) > $length ? mb_substr($result, 0, $length).'...' : $result;
     }

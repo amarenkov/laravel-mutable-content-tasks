@@ -4,6 +4,8 @@ namespace Amarenkov\MutableContentTasks\Support;
 
 use Illuminate\Support\Number;
 
+use Amarenkov\MutableContent\ValueObjects\Duration as CoreDuration;
+
 /**
  * Length in seconds for people.
  */
@@ -15,7 +17,7 @@ class Duration
      */
     public static function clock(int $seconds): string
     {
-        return sprintf('%02d:%02d:%02d', intdiv($seconds, 3600), intdiv($seconds % 3600, 60), $seconds % 60);
+        return (new CoreDuration($seconds))->clock(padHours: true);
     }
 
     /**

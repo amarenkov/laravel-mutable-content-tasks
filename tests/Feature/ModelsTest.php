@@ -58,7 +58,7 @@ class ModelsTest extends TestCase
         $point = $this->makePoint(PointType::TASK, ['description' => "First line\nsecond line"]);
 
         $this->assertSame("First line\nsecond line", $point->fresh()->{Point::FIELD_EXCERPT});
-        $this->assertSame('First linesecond lin...', $point->oneLineExcerpt());
+        $this->assertSame('First line second li...', $point->oneLineExcerpt());
 
         $long = $this->makePoint(PointType::TASK, ['description' => str_repeat('a', 300)]);
 

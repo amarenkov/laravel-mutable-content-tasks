@@ -32,6 +32,44 @@ use Amarenkov\MutableContentTasks\Tests\TestCase;
 
 class ServicesTest extends TestCase
 {
+    public function test_update_does_not_change_the_parent(): void
+    {
+        $parent = Points::new(PointType::TASK)->fields([Point::FIELD_EXCERPT => 'Parent'])->save();
+        $child = Points::new(PointType::TASK)->in($parent)->fields([Point::FIELD_EXCERPT => 'Child'])->save();
+
+        $this->expectException(DomainException::class);
+
+        Points::of($parent)->update([Point::FIELD_PARENT_ID => $child->id]);
+    }
+
+    public function test_sync_removes_a_participant_whose_actor_is_deleted(): void
+    {
+        $point = Points::new(PointType::TASK)->fields([Point::FIELD_EXCERPT => 'Task'])->save();
+        $gone = $this->otherActor();
+
+        Points::of($point)->addParticipant($gone, ParticipantRole::EXECUTOR);
+        $gone->delete();
+
+        Points::of($point)->syncParticipants(ParticipantRole::EXECUTOR, []);
+
+        $this->assertSame(0, $point->participants()->whereField(Participant::FIELD_ROLE, ParticipantRole::EXECUTOR)->count());
+    }
+
+    public function test_actor_of_a_deleted_one_comes_back(): void
+    {
+        $actor = $this->otherActor();
+        $actor->delete();
+
+        $this->assertSame($actor->id, $this->otherActor()->id);
+    }
+
+    public function test_one_line_excerpt_keeps_words_apart(): void
+    {
+        $point = Points::new(PointType::TASK)->fields([Point::FIELD_EXCERPT => "First\r\nsecond"])->save();
+
+        $this->assertSame('First second', $point->oneLineExcerpt());
+    }
+
     protected const EVENTS = [
         PointCreated::class,
         PointUpdated::class,

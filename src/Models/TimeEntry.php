@@ -43,8 +43,6 @@ class TimeEntry extends ModelWithFields
     public const FIELD_COMMENT = 'comment';
 
     // static
-    protected static array|bool|null $fieldDefinitions = null;
-
     /**
      * Running entry of the actor, if any.
      */
